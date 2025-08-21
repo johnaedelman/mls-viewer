@@ -1,0 +1,1 @@
+You must create your own api-key.txt containing a valid Google Maps API key which can be used for the Geocoding API. There's a maximum of 2500 free requests per day, so my API key can't be public-facing.
