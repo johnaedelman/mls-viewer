@@ -13,10 +13,11 @@ HTML_OUTPUT = "output_map.html"
 
 def geocode(url):
     response = requests.get(url).json()
-    loc = {}
-    if response["status"] == "OK":
-        loc = response["results"][0]["geometry"]["location"]
-        loc["city"] = response["results"][0]["address_components"][2]["long_name"]
+    while not response["status"] == "OK":
+        print(response)
+        response = requests.get(url).json()
+    loc = response["results"][0]["geometry"]["location"]
+    loc["city"] = response["results"][0]["address_components"][2]["long_name"]
     return loc
 
 
@@ -34,6 +35,7 @@ for filename in os.listdir(CSV_FOLDER):
             continue
         simple_address = simple_address.replace("  ", " ").lower().title()  # Remove weird formatting and ensure proper capitalization
         address = simple_address
+        address = address.replace("#", "")
         if "Zip" in row.keys():
             address += f" {row["Zip"]}"
 
