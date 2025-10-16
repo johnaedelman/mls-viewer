@@ -16,8 +16,12 @@ def geocode(url):
     while not response["status"] == "OK":
         print(response)
         response = requests.get(url).json()
-    loc = response["results"][0]["geometry"]["location"]
-    loc["city"] = response["results"][0]["address_components"][2]["long_name"]
+    try:
+        loc = response["results"][0]["geometry"]["location"]
+        loc["city"] = response["results"][0]["address_components"][2]["long_name"]
+    except IndexError:
+        print("Geocoding request failed. Skipping to next address...")
+        return {}
     return loc
 
 
