@@ -26,6 +26,11 @@
 	border-left: 6px solid transparent;
 	border-right: 6px solid transparent;
   }
+
+  .price-tag-highlight{
+	background-color: #00FF00;
+	color: #000000;
+  }
   .active-tag {
   background-color: #309600;
 }
@@ -59,8 +64,6 @@
 	padding-top: 1vh;
 	padding-bottom: 1vh;
 	margin-top: -1vh;
-	padding-left: 1vw;
-	padding-right: 1vw;
 	background-color: #f0f0f08f;
 }
 body{
@@ -72,8 +75,8 @@ body{
 	vertical-align: middle;
 	width: 8vw;
 	height: 5vh;
-	margin-left: 0.5vw;
-	margin-right: 0.5vw;
+	margin-left: 1vw;
+	margin-right: 1vw;
 	border: 1px solid #c7c7c7;
 	font-family:Helvetica,Arial;
 	font-size:14px;
@@ -145,6 +148,9 @@ td{
 .tr2{
 	background-color: #f0f0f0;
 }
+.tr-highlight{
+	background-color: #00ff00;
+}
 
 .addresstd{
 	color: #0000EE;
@@ -192,19 +198,19 @@ td{
 		<tbody></tbody>
 	</table>
   </div>
-  <div style="position:fixed; top:0; left: 34vw; width:66vw; height:100vh;">
+  <div style="position:fixed; top:0; left: 40vw; width:60vw; height:100vh;">
   		<div id="map" style="width: 100%; height: 100%; margin-right: -1vh;"></div>
   </div>
 
   <script type="text/javascript">
     var locations = [
-
+		
 	];
     var map_markers = [];
 
     var map = new google.maps.Map(document.getElementById('map'), {
       zoom: 14,
-	  center: new google.maps.LatLng(42.4338, -83.9845),
+	  center: new google.maps.LatLng(32.7555218, -117.00327075),
 	  mapTypeId: google.maps.MapTypeId.ROADMAP,
       mapId: "DEMO_MAP_ID"
     });
@@ -226,44 +232,31 @@ td{
 		}
 		return "$" + output;
 	}
-
-	function setMapOnClass(map, stat){
-		listings_table.innerHTML = initial_table_html;
-		for (let i = 0; i < map_markers.length; i++){
-			if (map_markers[i][0].content.classList.contains(`${stat}-tag`)){
-				map_markers[i][0].setMap(map);
-				const price = map_markers[i][1][4];
-
-				const locationRow = listings_table.insertRow();
-				if (i % 2 != 0){
-				locationRow.className = "tr2";
-				}
-
-				for (var j = 0; j < 5; j++){
-					const newCell = locationRow.insertCell();
-					newCell.textContent = map_markers[i][1][j];
-					if (j == 0){
-						newCell.className = "addresstd";
-					} else if (j == 1){
-						newCell.className = `${stat}td`;
-						newCell.textContent = String(stat).charAt(0).toUpperCase() + String(stat).slice(1); // Capitalize
-					} else if (j == 4){
-						let cont = "";
-						price_frags = price.split(" - ");
-						for (let x = 0; x < price_frags.length; x++){
-							cont += formatPrice(price_frags[x]) + " - ";
-						}
-						cont = cont.substring(0, cont.length - 3);
-						newCell.textContent = cont;
-
-					}
-				}
-			} else{
-				map_markers[i][0].setMap(null);
-			}
+	function highlightMarker(marker, locationRow, savedClassList){
+		return function() {
+		var classList = marker.content.classList;
+		locationRow.className = "tr-highlight";
+		while (classList.length > 0){
+			savedClassList.push(classList.item(0));
+			classList.remove(classList.item(0));
+		}
+		classList.add("price-tag");
+		classList.add("price-tag-highlight");
 		}
 	}
-	function setMapOnAll(map){
+	function unhighlightMarker(marker, locationRow, savedClassList){
+		return function() {
+		locationRow.className = locationRow.getAttribute("rowClass");
+		marker.content.className = "";
+		for (let x = 0; x < savedClassList.length; x++){
+			marker.content.classList.add(savedClassList[x]);
+		}
+		savedClassList.length = 0;
+		}
+	}
+
+
+	function initializeListings(map){
 		listings_table.innerHTML = initial_table_html;
 		for (let i = 0; i < map_markers.length; i++){
 			const marker = map_markers[i][0];
@@ -275,6 +268,9 @@ td{
 			const locationRow = listings_table.insertRow();
 			if (i % 2 != 0){
 				locationRow.className = "tr2";
+				locationRow.setAttribute("rowClass", "tr2");
+			} else{
+				locationRow.setAttribute("rowClass", "tr");
 			}
 			for (var j = 0; j < 5; j++){
 				const newCell = locationRow.insertCell();
@@ -303,8 +299,68 @@ td{
 
 				}
 			}
+			var pre = [];
+			locationRow.addEventListener("mouseenter", highlightMarker(marker, locationRow, pre));
+			locationRow.addEventListener("mouseleave", unhighlightMarker(marker, locationRow, pre));
+			marker.content.addEventListener("mouseenter", highlightMarker(marker, locationRow, pre));
+			marker.content.addEventListener("mouseleave", unhighlightMarker(marker, locationRow, pre));
+				
 		}
-		
+	}
+	function hideListings(){
+		for (let i = 0; i < listings_table.rows.length; i++){
+			const locationRow = listings_table.rows[i];
+			locationRow.style.display = "none";
+		}
+		for (let i = 0; i < map_markers.length; i++){
+			map_markers[i][0].setMap(null);
+		}
+	}
+	function showListings(map){
+		hideListings();
+		for (let i = 0; i < listings_table.rows.length; i++){
+			const locationRow = listings_table.rows[i];
+			locationRow.style.display = "";
+			if (i % 2 == 0){
+				locationRow.className = "tr2";
+				locationRow.setAttribute("rowClass", "tr2");
+			} else{
+				locationRow.className = "tr";
+				locationRow.setAttribute("rowClass", "tr");
+			}
+		}
+		for (let i = 0; i < map_markers.length; i++){
+			map_markers[i][0].setMap(map);
+		}
+	}
+
+	function showListingsOnClass(map, stat){
+		hideListings();
+		var numRows = 0;
+		for (let i = 0; i < listings_table.rows.length; i++){
+			const locationRow = listings_table.rows[i];
+			rowStatus = locationRow.cells[1].innerHTML.toLowerCase();
+			if (rowStatus === stat || rowStatus === "status"){
+				locationRow.style.display = "";
+				if (numRows % 2 == 0){
+					locationRow.className = "tr2";
+					locationRow.setAttribute("rowClass", "tr2");
+				} else{
+					locationRow.className = "tr";
+					locationRow.setAttribute("rowClass", "tr");
+				}
+				numRows++;
+			}
+		}
+		for (let i = 0; i < map_markers.length; i++){
+			if (stat === "active"){
+				stat = "act";
+			} else if (stat === "pending"){
+				stat = "pend";
+			}
+			if (map_markers[i][1][1].toLowerCase() === stat)
+				map_markers[i][0].setMap(map);
+		}
 	}
 
     var marker, i;
@@ -327,22 +383,22 @@ td{
 	buttons.appendChild(sold_button);
 	all_button.addEventListener("click", (function() {
 		return function() {
-			setMapOnAll(map);
+			showListings(map);
 		}
 	})());
 	act_button.addEventListener("click", (function() {
 		return function() {
-			setMapOnClass(map, "active");
+			showListingsOnClass(map, "active");
 		}
 	})());
 	pend_button.addEventListener("click", (function() {
 		return function() {
-			setMapOnClass(map, "pending");
+			showListingsOnClass(map, "pending");
 		}
 	})());
 	sold_button.addEventListener("click", (function() {
 		return function() {
-			setMapOnClass(map, "sold");
+			showListingsOnClass(map, "sold");
 		}
 	})());
 
@@ -351,6 +407,7 @@ td{
     for (i = 0; i < locations.length; i++) {  
         const priceTag = document.createElement('div');
 		const address = locations[i][0];
+		const dom = locations[i][2];
 		const lat = locations[i][5];
 		const long = locations[i][6];
 		const price = locations[i][4];
@@ -373,19 +430,20 @@ td{
         map: null,
         content: priceTag
       });
-      
       google.maps.event.addListener(marker, 'click', (function(marker, i) {
         return function() {
-          infowindow.setContent(address);
+          infowindow.setContent(`<p>${address}<br />Days on market: ${dom}<br />List price: ${formatPrice(price)}</p>`);
           infowindow.open(map, marker);
         }
       })(marker, i));
+	  
 	  map_markers.push([marker, locations[i]]);
     }
 	all_button.textContent = `All (${act_count + pend_count + sold_count})`;
 	act_button.innerHTML = `<span class="dot active-dot"></span> Active (${act_count})`;
 	pend_button.innerHTML = `<span class="dot pending-dot"></span> Pending (${pend_count})`;
 	sold_button.innerHTML = `<span class="dot sold-dot"></span> Sold (${sold_count})`;
+	initializeListings(map);
   </script>
 </body>
 </html>
