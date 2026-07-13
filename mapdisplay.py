@@ -84,5 +84,5 @@ with open(HTML_TEMPLATE) as html:
             for addr in output_arr:
                 output_lines += addr
 
-with open(HTML_OUTPUT, "w") as output:
+with open(HTML_OUTPUT, "w", encoding="utf-8") as output:
     output.writelines(output_lines)
